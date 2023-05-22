@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # == Schema Information
 #
 # Table name: posts
@@ -12,7 +14,9 @@
 class Post < ApplicationRecord
   belongs_to :user
 
-  validates :title, presence: true
-  validates :content, presence: true
+  validates :title, presence: true, length: { maximum: 200 }
+  validates :content, presence: true, length: { maximum: 2000 }
+  validates :user_id, presence: true
+
   has_many :comments, dependent: :destroy
 end

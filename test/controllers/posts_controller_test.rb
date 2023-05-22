@@ -1,48 +1,60 @@
-require "test_helper"
+# frozen_string_literal: true
+
+require 'test_helper'
 
 class PostsControllerTest < ActionDispatch::IntegrationTest
-  setup do
-    @post = posts(:one)
+  test '#index returns all posts if no user_id is passed' do
+    get 'http://localhost:3001/api/posts'
+    assert JSON.parse(response.body).length, Post.count
   end
 
-  test "should get index" do
-    get posts_url
-    assert_response :success
+  test '#index returns only users posts if user_id is passed' do
+    user = User.create(username: 'user', password_digest: '1234')
+    user.posts.create(title: 'test', content: 'test')
+
+    get 'http://localhost:3001/api/posts', as: :json, params: { user_id: user.id }
+    posts = JSON.parse(response.body)
+    assert posts.length, 1
+    assert posts.first['title'] == 'test'
   end
 
-  test "should get new" do
-    get new_post_url
-    assert_response :success
+  test '#show returns a 404 unless id is present' do
+    get 'http://localhost:3001/api/post', as: :json
+    assert_response 404
   end
 
-  test "should create post" do
-    assert_difference("Post.count") do
-      post posts_url, params: { post: {  } }
+  test 'show returns successfully if user_id is passed' do
+    post = Post.create(
+      user: User.first,
+      title: 'title',
+      content: 'content'
+    )
+    get 'http://localhost:3001/api/post', as: :json, params: { id: post.id }
+    assert JSON.parse(response.body)['id'] == post.id
+  end
+
+  test '#create creates a new post with valid parameters' do
+    assert_changes -> { Post.count } do
+      post 'http://localhost:3001/create-post', params: {
+        post: {
+          user_id: User.first.id,
+          content: 'content',
+          title: 'title'
+        }
+      }
     end
-
-    assert_redirected_to post_url(Post.last)
   end
 
-  test "should show post" do
-    get post_url(@post)
-    assert_response :success
-  end
-
-  test "should get edit" do
-    get edit_post_url(@post)
-    assert_response :success
-  end
-
-  test "should update post" do
-    patch post_url(@post), params: { post: {  } }
-    assert_redirected_to post_url(@post)
-  end
-
-  test "should destroy post" do
-    assert_difference("Post.count", -1) do
-      delete post_url(@post)
+  test '#create doesnt create a comment when invalid params are passed' do
+    assert_no_changes -> { Post.count } do
+      post 'http://localhost:3001/create-post', params: {
+        post: {
+          user_id: 0,
+          title: 'title',
+          content: 'content'
+        }
+      }
     end
-
-    assert_redirected_to posts_url
+    assert response.body.include?('User must exist')
   end
 end

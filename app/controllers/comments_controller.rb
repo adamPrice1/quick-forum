@@ -1,17 +1,19 @@
-class CommentsController < ApplicationController
+# frozen_string_literal: true
 
+# Controller for comments
+class CommentsController < ApplicationController
   def create
     @comment = Comment.new(comment_params)
-      if @comment.save
-          render json: {
-          status: :created,
-          comment: @comment
+    if @comment.save
+      render json: {
+        status: :created,
+        comment: @comment
       }
     else
-        render json: {
+      render json: {
         status: 500,
         errors: @comment.errors.full_messages
-    }
+      }
     end
   end
 
